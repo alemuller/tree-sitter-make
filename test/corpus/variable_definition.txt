@@ -1,0 +1,409 @@
+================================================================================
+Variable definition, assignment, variable name
+================================================================================
+# len == 1
+\:=
++:=
+# len == 2
+\\:=
+\+:=
++\:=
+++:=
+# len == 3
+\\\:=
+\\+:=
+\+\:=
+\++:=
++\\:=
++\+:=
+++\:=
++++:=
+
+---
+
+(makefile
+  (comment)
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (comment)
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (comment)
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, variable name, conflicts with operator
+================================================================================
+++=
+??=
+!!=
+# len == 2
++++=
+???=
+!!!=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (comment)
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, variable name, conflicts with line split
+================================================================================
+\\\
+=
+\\\\\
+:=
+\\\\\\\
+::=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, delimiter, \020
+================================================================================
+ \ =
+ + +=
+ ? ?=
+ ! !=
+ \ :=
+ \ ::=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, delimiter, \t
+================================================================================
+	\	=
+	+	+=
+	?	?=
+	!	!=
+	\	:=
+	\	::=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, delimiter, \\\n
+================================================================================
++\
++=
+?\
+?=
+!\
+!=
+"\
+:=
+"\
+::=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, delimiter, \\\r\n
+================================================================================
++\
++=
+?\
+?=
++\
++=
+!\
+!=
+"\
+:=
+"\
+::=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, variable name, line split with space
+================================================================================
+a \
+=
+" \
+	=
+!	\
+	=
+) 	 \
+	 =
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+================================================================================
+Variable definition, assignment, variable name, variable expansion I
+================================================================================
+$\=
+${\}=
+$(\)=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable)))))
+
+================================================================================
+Variable definition, assignment, variable name, variable expansion II
+================================================================================
+\$\=
+\${\}=
+\$(\)=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable)))))
+
+================================================================================
+Variable definition, assignment, variable name, variable expansion III
+================================================================================
+\$\\=
+\${\}\=
+\$(\)\=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable
+      (variable_reference (variable)))))
+
+================================================================================
+Variable definition, assignment, value, simple
+================================================================================
+a =foo.o bar.o
+b = foo.o bar.o
+c =	foo.o bar.o
+
+---
+
+(makefile
+  (variable_assignment
+     name: (variable)
+    value: (text))
+  (variable_assignment
+     name: (variable)
+    value: (text))
+  (variable_assignment
+     name: (variable)
+    value: (text)))
+
+================================================================================
+Variable definition, assignment, value, line wrap
+================================================================================
+var := foo\
+       bar
+
+---
+
+(makefile
+  (variable_assignment
+     name: (variable)
+    value: (text)))
+
+================================================================================
+Variable definition, assignment, value, line wrap, multiple lines
+================================================================================
+var := foo\
+       bar\
+baz
+
+---
+
+(makefile
+  (variable_assignment
+     name: (variable)
+    value: (text)))
+
+================================================================================
+Variable definition, assignment, value, expansion
+================================================================================
+foo=$b
+foo=${bar}
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable)
+    value: (text
+      (variable_reference (variable))))
+  (variable_assignment
+    name: (variable)
+    value: (text
+      (variable_reference (variable)))))
+
+================================================================================
+Variable definition, assignment, modifier, private
+================================================================================
+private bar=
+foo:private bar=
+f%o:private bar=
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable))
+  (target_specific
+    (targets (filename))
+    (variable_assignment
+      name: (variable)))
+  (pattern_specific
+    (targets (pattern))
+    (variable_assignment
+      name: (variable))))
+
+================================================================================
+Variable definition, assignment, directive, override
+================================================================================
+override bar=
+foo:override bar=
+f%o:override bar=
+
+---
+
+(makefile
+  (override_directive
+    (variable_assignment
+      name: (variable)))
+  (target_specific
+    (targets (filename))
+    (override_directive
+      (variable_assignment
+        name: (variable))))
+  (pattern_specific
+    (targets (pattern))
+    (override_directive
+      (variable_assignment
+        name: (variable)))))

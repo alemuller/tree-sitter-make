@@ -1,0 +1,12 @@
+==================================
+Assignments
+==================================
+a=b
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable)
+   value: (text)))
+
