@@ -15,6 +15,8 @@ const PATT_QUOTE = genQuotes('%');
 const NEWLINE = ['\n','\r\n'];
 const LINE_SPLIT = genQuotes(...NEWLINE);
 
+const AUTO_VAR = ['@','%','<','?','^','+','|','*','?'];
+
 module.exports = grammar({
   name: 'make',
 
@@ -220,22 +222,36 @@ module.exports = grammar({
     // Expansion
     // =========
     _expansion: $ => choice(
-      $.variable_reference
+      $.variable_reference,
+      $.automatic_variable
     ),
 
     _expansion_immd: $ => choice(
+      alias($.automatic_variable_immd, $.automatic_variable),
       alias($.variable_reference_immd, $.variable_reference),
     ),
+
+    //
 
     variable_reference     : $ => seq(token('$'), $._variable_reference),
     variable_reference_immd: $ => seq( immd('$'), $._variable_reference),
 
+    automatic_variable     : $ => seq(token('$'), $._automatic_variable),
+    automatic_variable_immd: $ => seq( immd('$'), $._automatic_variable),
+
+    //
+
     _variable_reference: $ => choice(
       alias(immd(/[^${(]/), $.variable),
-      seq(immd('{'), $.variable, immd('}')),
-      seq(immd('('), $.variable, immd(')')),
+      seq(immd('{'), optional($.variable), immd('}')),
+      seq(immd('('), optional($.variable), immd(')')),
     ),
 
+    _automatic_variable: $ => choice(
+      immd(prec(2,choice(...AUTO_VAR))),
+      seq(immd('{'), immd(prec(2,choice(...AUTO_VAR))), optional(immd(choice('D','F'))), immd('}')),
+      seq(immd('('), immd(prec(2,choice(...AUTO_VAR))), optional(immd(choice('D','F'))), immd(')')),
+    ),
 
     // Some tokens
     // ===========
