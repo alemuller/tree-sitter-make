@@ -50,16 +50,16 @@ int lex_name(TSLexer *lexer) {/*!re2c
               ;
 
     *      { return -2; }
-    [\x00] { return -3; }
+    [\x00] { return EMPTY; }
 
     directive { return DIRECTIVE; }
 
     // remeber, rules that appear first have precedence
-    ".RECIPEPREFIX"    wsp* assignop { return RECIPEPREFIX;    }
-    ".SECONDEXPANSION" wsp* assignop { return SECONDEXPANSION; }
-    variable           wsp* assignop { return VARIABLE;        }
+    ".RECIPEPREFIX"    wsp* assignop { return RECIPEPREFIX_VAR;    }
+    ".SECONDEXPANSION" wsp* assignop { return SECONDEXPANSION_VAR; }
+    variable           wsp* assignop { return ASSIGNMENT_MARK;     }
 
-    filename (wsp+ filename)* wsp* rulesep { return FILENAMES; }
-    pattern  (wsp+  pattern)* wsp* rulesep { return PATTERNS;  }
+    filename (wsp+ filename)* wsp* rulesep { return FILENAME_SPEC; }
+    pattern  (wsp+  pattern)* wsp* rulesep { return PATTERN_SPEC;  }
 
 */}

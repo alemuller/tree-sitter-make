@@ -24,6 +24,8 @@ module.exports = grammar({
     $._variable_marker,
     $._filename_marker,
     $._pattern_marker,
+    $.recipeprefix,
+    $._rule_marker,
   ],
 
   extras: $ => [
@@ -35,6 +37,8 @@ module.exports = grammar({
   inline: $ => [
     $._variable_head , $._filename_head , $._pattern_head ,
     $._variable_trail, $._filename_trail, $._pattern_trail,
+    $._inlined_recipe_context,
+    $._default_recipe_context,
   ],
 
   conflicts: $ => [
@@ -83,7 +87,7 @@ module.exports = grammar({
       $._nl
     ),
 
-    _assignment_value: $ => alias($.line_without_leading_ws, $.text),
+    _assignment_value: $ => alias($.line, $.text),
 
     // =====
     // Rules
@@ -91,6 +95,7 @@ module.exports = grammar({
     _rule: $ => choice(
       $.ordinary_rule,
       $.pattern_rule,
+      $.static_pattern_rule
     ),
 
     // --------------------
@@ -114,6 +119,9 @@ module.exports = grammar({
     ordinary_rule: $ => seq(
       $._filenames_specification,
       optional($.prerequisites),
+      optional(seq(
+        '|', optional(alias($.prerequisites, $.order_prerequisites))
+      )),
       $.recipe_context
     ),
 
@@ -123,10 +131,64 @@ module.exports = grammar({
       $.recipe_context
     ),
 
+    static_pattern_rule: $ => seq(
+      $._patterns_specification,
+      field('target_pattern',$.pattern),
+      choice(...RULE_SEPARATOR.map(c => token(prec(2,c)))),
+      optional($.prerequisites),
+      $.recipe_context
+    ),
+
     // -------
     // Recipes
     // -------
-    recipe_context: $ => $._nl,
+    recipe_context: $ => prec.left(choice(
+      $._inlined_recipe_context,
+      $._default_recipe_context,
+    )),
+
+    _inlined_recipe_context: $ => seq(
+      seq(';', $._rule_marker, $.recipe),
+      repeat($._kind_of_things)
+    ),
+
+    _default_recipe_context: $ => seq(
+      $._nl,
+      $._rule_marker,
+      repeat($._kind_of_things)
+    ),
+
+    _recipe_line: $ => seq($.recipeprefix, $.recipe),
+
+    //
+
+    recipe: $ => seq(
+      optional($._special_prefix),
+      choice(
+        $._simple_recipe_line,
+        $._wraped_recipe_line,
+        $._nl
+      )
+    ),
+
+    _special_prefix: $ => choice(
+      ...['+','-','@'].map(c => immd(prec(1,c)))),
+
+    // newline shall is part of shell_code
+    _simple_recipe_line: $ => alias($.til_terminator, $.shell_code),
+
+    // recipeprefix isn't part of the shell_code
+    _wraped_recipe_line: $ => seq(
+      alias($.til_line_split, $.shell_code),
+      choice(
+        seq(optional($.recipeprefix), $._simple_recipe_line),
+        seq(optional($.recipeprefix), $._wraped_recipe_line),
+      )
+    ),
+
+    // DO NOT INLINE (aliased as shell code)
+    til_terminator: $ => seq($._line, $._nl),
+    til_line_split: $ => seq($._line, $._split),
 
     // ===============
     // Names and text
@@ -206,15 +268,15 @@ module.exports = grammar({
     // -----
     // Text
     // -----
-    line_without_leading_ws: $ => seq($._no_ws_head, optional($._line_trail)),
+    line: $ => seq($._any_but_ws, optional($._line)),
 
-    _no_ws_head: $ => choice(
+    _any_but_ws: $ => choice(
       token(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(' ','\t')))),
       $._expansion
     ),
 
-    _line_trail: $ => repeat1(choice(
-      immd(TEXT_CHAR),
+    _line: $ => repeat1(choice(
+      immd(repeat1(TEXT_CHAR)),
       $._expansion_immd
     )),
 
@@ -260,7 +322,6 @@ module.exports = grammar({
     _split: $ => token(LINE_SPLIT),
 
     comment: $ => token(/#(.*?\\\r?\n)*.*\r?\n/),
-
   }
 
 });
