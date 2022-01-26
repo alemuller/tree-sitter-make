@@ -35,8 +35,8 @@ module.exports = grammar({
   ],
 
   inline: $ => [
-    $._variable_head , $._filename_head , $._pattern_head ,
-    $._variable_trail, $._filename_trail, $._pattern_trail,
+    $._variable_head, $._filename_head, $._pattern_head,
+    $._variable_immd, $._filename_immd, $._pattern_immd,
     $._inlined_recipe_context,
     $._default_recipe_context,
   ],
@@ -197,11 +197,11 @@ module.exports = grammar({
     // -----
     // Names
     // -----
-    variable: $ =>      prec.left(seq($._variable_head, optional($._variable_trail))),
-    filename: $ => prec.dynamic(1,seq($._filename_head, optional($._filename_trail))),
-    pattern:  $ =>                seq($._pattern_head , optional($._pattern_trail )),
+    variable: $ =>      prec.left(seq($._variable_head, optional($._variable_immd))),
+    filename: $ => prec.dynamic(1,seq($._filename_head, optional($._filename_immd))),
+    pattern:  $ =>                seq($._pattern_head , optional( $._pattern_immd)),
 
-    library:  $ => seq('-l', optional($._pattern_trail)),
+    library:  $ => seq('-l', optional($._pattern_immd)),
 
     archive: $ => seq(
       field('name',$.filename),
@@ -231,18 +231,18 @@ module.exports = grammar({
     ),
 
     // trail tokens shall be immediate
-    _variable_trail: $ => repeat1(choice(
+    _variable_immd: $ => repeat1(choice(
       immd(NAME_CHAR),
       $._expansion_immd
     )),
 
-    _filename_trail: $ => repeat1(choice(
+    _filename_immd: $ => repeat1(choice(
             immd(NAME_CHAR),
       alias(immd(FILE_QUOTE),$.quote),
       $._expansion_immd
     )),
 
-    _pattern_trail: $ => repeat1(choice(
+    _pattern_immd: $ => repeat1(choice(
             immd(NAME_CHAR),
             immd(PATT_STEM),
       alias(immd(FILE_QUOTE),$.quote),
