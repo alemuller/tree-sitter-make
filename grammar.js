@@ -48,6 +48,7 @@ module.exports = grammar({
 
   supertypes: $ => [
     $._rule,
+    $._directive,
     $._variable_definition,
   ],
 
@@ -57,6 +58,8 @@ module.exports = grammar({
 
     _kind_of_things: $ => choice(
       $._variable_definition,
+      $._recipe_line,
+      $._directive,
       $._rule,
       $._nl
     ),
@@ -70,12 +73,16 @@ module.exports = grammar({
       $.variable_assignment,
     ),
 
-    target_specific: $ => seq(
-      $._filenames_specification, $.variable_assignment
+    target_specific: $ => choice(
+      seq($._filenames_specification, $.variable_assignment),
+      seq($._filenames_specification, $.override_directive),
+      seq($._filenames_specification, $.export_directive),
     ),
 
-    pattern_specific: $ => seq(
-      $._patterns_specification, $.variable_assignment
+    pattern_specific: $ => choice(
+      seq($._patterns_specification, $.variable_assignment),
+      seq($._patterns_specification, $.override_directive),
+      seq($._patterns_specification, $.export_directive),
     ),
 
     variable_assignment: $ => seq(
@@ -83,11 +90,9 @@ module.exports = grammar({
       $._variable_marker,
       field('name', $.variable),
       field('operator', choice(...ASSIGNMENT_OPERATOR)),
-      field('value', optional($._assignment_value)),
+      field('value', optional(alias($.value, $.text))),
       $._nl
     ),
-
-    _assignment_value: $ => alias($.line, $.text),
 
     // =====
     // Rules
@@ -190,6 +195,103 @@ module.exports = grammar({
     til_terminator: $ => seq($._line, $._nl),
     til_line_split: $ => seq($._line, $._split),
 
+    // ==========
+    // Directives
+    // ==========
+    _directive: $ => choice(
+      $.include_directive,  // 3.3
+      $.vpath_directive,    // 4.5.2
+      $.export_directive,   // 5.7.2
+      $.unexport_directive, // 5.7.2
+      $.override_directive, // 6.7
+      // define_directive   // 6.8
+      $.undefine_directive, // 6.9
+      $.conditional_directive, // 7
+      // load_directive // 12.2.1 TODO
+    ),
+
+    include_directive: $ => choice(
+      seq(         'include' , repeat1($.filename), $._nl),
+      seq(        'sinclude' , repeat1($.filename), $._nl),
+      seq('-',immd('include'), repeat1($.filename), $._nl),
+    ),
+
+    vpath_directive: $ => choice(
+      seq('vpath', $.pattern, $.directories, $._nl),
+      seq('vpath', $.pattern, $._nl),
+      seq('vpath', $._nl),
+    ),
+
+    directories: $ => seq(
+      $.filename,
+      repeat(seq(
+        immd(':'),
+        alias($._filename_immd, $.filename)
+      ))
+    ),
+
+    export_directive: $ => choice(
+      seq('export', $.variable_assignment),
+      seq('export', $.variable, $._nl),
+      seq('export', $._nl),
+    ),
+
+    unexport_directive: $ => choice(
+      seq('unexport', $.variable, $._nl),
+      seq('unexport', $._nl),
+    ),
+
+    override_directive: $ => choice(
+      seq('override', $.variable_assignment),
+      seq('override', $.undefine_directive),
+    ),
+
+    undefine_directive: $ => seq(
+      'undefine', $.variable, $._nl
+    ),
+
+    // ----------------------
+    // Conditional Directives
+    // ----------------------
+    conditional_directive: $ => seq(
+      $._conditional_directive,
+      'endif',
+      $._nl
+    ),
+
+    _conditional_directive: $ => seq(
+      $.condition,
+      optional($.body),
+      optional($.alternative)
+    ),
+
+    body: $ => repeat1(choice($._kind_of_things)),
+
+    alternative: $ => choice(
+      seq('else', $._conditional_directive),
+      seq('else', $._nl, optional($.body))
+    ),
+
+    condition: $ => choice(
+      seq('ifeq' ,  $.comparison, $._nl),
+      seq('ifneq',  $.comparison, $._nl),
+      seq('ifdef',  $.variable, $._nl),
+      seq('ifndef', $.variable, $._nl),
+    ),
+
+    comparison: $ => choice(
+      seq('(', field('arg1', optional($._arg1) ), ',', field('arg2', optional($._arg2) ), ')'),
+      seq(     field('arg1',          $._string),      field('arg2',          $._string)     ),
+    ),
+
+    _arg1: $ => alias($.text_no_comma, $.text),
+    _arg2: $ => alias($.text_no_paren, $.text),
+
+    _string: $ => choice(
+      seq("'",  optional(alias($.text_no_squote, $.text)), immd("'")),
+      seq('"',  optional(alias($.text_no_dquote, $.text)), immd('"'))
+    ),
+
     // ===============
     // Names and text
     // ===============
@@ -268,7 +370,7 @@ module.exports = grammar({
     // -----
     // Text
     // -----
-    line: $ => seq($._any_but_ws, optional($._line)),
+    value: $ => seq($._any_but_ws, optional($._line)),
 
     _any_but_ws: $ => choice(
       token(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(' ','\t')))),
@@ -277,6 +379,31 @@ module.exports = grammar({
 
     _line: $ => repeat1(choice(
       immd(repeat1(TEXT_CHAR)),
+      $._expansion_immd
+    )),
+
+    text_no_squote: $ => repeat1(choice(
+      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat("'")))),
+      $._expansion_immd
+    )),
+
+    text_no_dquote: $ => repeat1(choice(
+      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat('"')))),
+      $._expansion_immd
+    )),
+
+    text_no_comma: $ => repeat1(choice(
+      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(',')))),
+      $._expansion_immd
+    )),
+
+    text_no_paren: $ => repeat1(choice(
+      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(')')))),
+      $._expansion_immd
+    )),
+
+    text_no_brace: $ => repeat1(choice(
+      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat('}')))),
       $._expansion_immd
     )),
 
