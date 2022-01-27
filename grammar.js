@@ -3,17 +3,14 @@ const immd = (x) => token.immediate(x);
 const ASSIGNMENT_OPERATOR = [ '=',':=','::=','+=','?=','!=' ];
 const RULE_SEPARATOR = [ ':','::','&:','&::' ];
 
-const RESERVED_NAME_CHARS = ['\r', '\n', '\t', '#', '$', '=', ':', ' '];
-const RESERVED_TEXT_CHARS = ['\r', '\n', '\t', '#', '$', '\\'];
+const VARIABLE = /[^\s\\$:#=+?!]+/;
+const TARGET   = /[^\s\\$:#=&%()]+/;
+const ANY  = /[^\s#:=]/;
 
-const NAME_CHAR  = anyBut(RESERVED_NAME_CHARS);
-const TEXT_CHAR  = anyBut(RESERVED_TEXT_CHARS);
-const PATT_STEM  = prec(2,'%');
+const RESERVED_TEXT_CHARS = ['\r', '\n',  '#', '$', '\\'];
+
 const FILE_QUOTE = genQuotes(' ','#','\\',':');
 const PATT_QUOTE = genQuotes('%');
-
-const NEWLINE = ['\n','\r\n'];
-const LINE_SPLIT = genQuotes(...NEWLINE);
 
 const AUTO_VAR = ['@','%','<','?','^','+','|','*','?'];
 
@@ -30,20 +27,24 @@ module.exports = grammar({
 
   extras: $ => [
     /[ \t]+/,
-    $._split,
+    $.split,
     $.comment
   ],
 
   inline: $ => [
-    $._variable_head, $._filename_head, $._pattern_head,
-    $._variable_immd, $._filename_immd, $._pattern_immd,
+    //
+    $._variable_special, $._variable_special_immd,
+    $._filename_special, $._filename_special_immd,
+    $._pattern_special , $._pattern_special_immd ,
+    //
     $._inlined_recipe_context,
     $._default_recipe_context,
   ],
 
   conflicts: $ => [
     // target specification conflict
-    [$.filename , $.pattern],
+    [$.filename       , $.pattern      ],
+    [$._filename_rest , $._pattern_rest],
   ],
 
   supertypes: $ => [
@@ -193,7 +194,7 @@ module.exports = grammar({
 
     // DO NOT INLINE (aliased as shell code)
     til_terminator: $ => seq($._line, $._nl),
-    til_line_split: $ => seq($._line, $._split),
+    til_line_split: $ => seq($._line, $.split),
 
     // ==========
     // Directives
@@ -299,58 +300,94 @@ module.exports = grammar({
     // -----
     // Names
     // -----
-    variable: $ =>      prec.left(seq($._variable_head, optional($._variable_immd))),
-    filename: $ => prec.dynamic(1,seq($._filename_head, optional($._filename_immd))),
-    pattern:  $ =>                seq($._pattern_head , optional( $._pattern_immd)),
 
-    library:  $ => seq('-l', optional($._pattern_immd)),
-
-    archive: $ => seq(
-      field('name',$.filename),
-      immd('('),
-      repeat1(field('member', $.filename)),
-      immd(')'),
+    variable: $ => genNameBegin(
+      token(TARGET),
+      $._variable_special,
+      $._variable_special_immd,
+      $._variable_rest
     ),
 
-    // TODO expansion
-    _variable_head: $ => choice(
-      token(NAME_CHAR),
+    filename: $ => prec.dynamic(1,genNameBegin(
+      token(TARGET),
+      $._filename_special,
+      $._filename_special_immd,
+      $._filename_rest
+    )),
+
+    pattern: $ => genNameBegin(
+      token(TARGET),
+      $._pattern_special,
+      $._pattern_special_immd,
+      $._pattern_rest
+    ),
+
+    _variable_rest: $ => choice(
+      seq(immd(VARIABLE)),
+      seq(immd(VARIABLE), repeat1($._variable_special_immd)),
+      seq(immd(VARIABLE), repeat1($._variable_special_immd), $._variable_rest),
+    ),
+
+    _filename_rest: $ => choice(
+      seq(immd(TARGET)),
+      seq(immd(TARGET), repeat1($._filename_special_immd)),
+      seq(immd(TARGET), repeat1($._filename_special_immd), $._filename_rest),
+    ),
+
+    _pattern_rest: $ => choice(
+      seq(immd(TARGET)),
+      seq(immd(TARGET), repeat1($._pattern_special_immd)),
+      seq(immd(TARGET), repeat1($._pattern_special_immd), $._pattern_rest),
+    ),
+
+    _variable_special: $ => choice(
+      token(ANY),
       $._expansion
     ),
 
-    _filename_head: $ => choice(
-            token(NAME_CHAR),
+    _variable_special_immd: $ => choice(
+      immd(ANY),
+      $._expansion_immd
+    ),
+
+    _filename_special: $ => choice(
+      token(ANY),
       alias(token(FILE_QUOTE),$.quote),
       $._expansion
     ),
 
-    _pattern_head: $ => choice(
-            token(NAME_CHAR),
-            token(PATT_STEM),
+    _filename_special_immd: $ => choice(
+      immd(ANY),
+      alias(immd(FILE_QUOTE),$.quote),
+      $._expansion_immd
+    ),
+
+    _pattern_special: $ => choice(
+      token(ANY),
+      token(prec(2,'%')),
       alias(token(FILE_QUOTE),$.quote),
       alias(token(PATT_QUOTE),$.quote),
       $._expansion
     ),
 
-    // trail tokens shall be immediate
-    _variable_immd: $ => repeat1(choice(
-      immd(NAME_CHAR),
-      $._expansion_immd
-    )),
-
-    _filename_immd: $ => repeat1(choice(
-            immd(NAME_CHAR),
-      alias(immd(FILE_QUOTE),$.quote),
-      $._expansion_immd
-    )),
-
-    _pattern_immd: $ => repeat1(choice(
-            immd(NAME_CHAR),
-            immd(PATT_STEM),
+    _pattern_special_immd: $ => choice(
+      immd(ANY),
+      immd(prec(2,'%')),
       alias(immd(FILE_QUOTE),$.quote),
       alias(immd(PATT_QUOTE),$.quote),
       $._expansion_immd
-    )),
+    ),
+
+    library:  $ => seq(token(prec(2,'-l')), optional($._filename_immd)),
+
+    archive: $ => seq(
+      field('name',$.filename),
+      immd('('),
+      repeat(field('member', $.filename)),
+      immd(')'),
+    ),
+
+    _filename_immd: $ => seq(repeat($._filename_special_immd), $._filename_rest),
 
     // List of names
     // -------------
@@ -361,51 +398,27 @@ module.exports = grammar({
     )),
 
     prerequisites: $ => repeat1(choice(
-      $.filename,
-      $.pattern,
-      $.archive,
-      $.library,
+        $.filename,
+        $.pattern,
+        $.archive,
+        $.library,
     )),
 
     // -----
     // Text
     // -----
-    value: $ => seq($._any_but_ws, optional($._line)),
-
-    _any_but_ws: $ => choice(
-      token(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(' ','\t')))),
-      $._expansion
+    // value shall not include leading spaces
+    value: $ => seq(
+      genText($,' ','\t'),
+      optional($._line)
     ),
 
-    _line: $ => repeat1(choice(
-      immd(repeat1(TEXT_CHAR)),
-      $._expansion_immd
-    )),
-
-    text_no_squote: $ => repeat1(choice(
-      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat("'")))),
-      $._expansion_immd
-    )),
-
-    text_no_dquote: $ => repeat1(choice(
-      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat('"')))),
-      $._expansion_immd
-    )),
-
-    text_no_comma: $ => repeat1(choice(
-      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(',')))),
-      $._expansion_immd
-    )),
-
-    text_no_paren: $ => repeat1(choice(
-      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat(')')))),
-      $._expansion_immd
-    )),
-
-    text_no_brace: $ => repeat1(choice(
-      immd(repeat1(anyBut(RESERVED_TEXT_CHARS.concat('}')))),
-      $._expansion_immd
-    )),
+    _line: $ => genTextImmd($,''),
+    text_no_squote: $ => genTextImmd($,"'"),
+    text_no_dquote: $ => genTextImmd($,'"'),
+    text_no_comma:  $ => genTextImmd($,','),
+    text_no_paren:  $ => genTextImmd($,')'),
+    text_no_brace:  $ => genTextImmd($,'}'),
 
     // =========
     // Expansion
@@ -432,8 +445,8 @@ module.exports = grammar({
 
     _variable_reference: $ => choice(
       alias(immd(/[^${(]/), $.variable),
-      seq(immd('{'), optional($.variable), immd('}')),
-      seq(immd('('), optional($.variable), immd(')')),
+      seq(immd('{'), optional(alias(/[^\s:=#}]+/,$.variable)), immd('}')),
+      seq(immd('('), optional(alias(/[^\s:=#)]+/,$.variable)), immd(')')),
     ),
 
     _automatic_variable: $ => choice(
@@ -444,9 +457,9 @@ module.exports = grammar({
 
     // Some tokens
     // ===========
-    _nl: $ => token(choice(...NEWLINE)),
+    _nl: $ => token(choice('\n','\r\n')),
 
-    _split: $ => token(LINE_SPLIT),
+    split: $ => token(seq('\\',choice('\n','\r\n'))),
 
     comment: $ => token(/#(.*?\\\r?\n)*.*\r?\n/),
   }
@@ -469,4 +482,52 @@ function genQuotes() {
   let arr = Array(...arguments);
 
   return choice(...arr.map(c => seq('\\',c)))
+}
+
+
+// TODO: refactor
+function genTextImmd($,...exclude) {
+  let negCharset = anyBut(
+    RESERVED_TEXT_CHARS.concat(...exclude));
+
+  return repeat1(choice(
+    // greedy token
+    immd(repeat1(choice(
+      negCharset,
+      /\\./
+    ))),
+    $._expansion_immd
+  ));
+}
+
+// TODO: refactor
+function genText($,...exclude) {
+  let negCharset = anyBut(RESERVED_TEXT_CHARS.concat(...exclude));
+
+  return repeat1(choice(
+    // greedy token
+    token(repeat1(choice(
+      negCharset,
+      /\\./
+    ))),
+    $._expansion
+  ));
+}
+
+function genNameBegin(token, nested, nestedImmed, rest) {
+
+  // tok shall not be followed by another tok
+
+  return choice(
+    seq(nested, repeat1(nestedImmed), rest),
+    seq(nested, repeat1(nestedImmed)),
+    seq(nested, rest),
+    seq(nested),
+    //
+    seq(token, repeat1(nestedImmed), rest),
+    seq(token, repeat1(nestedImmed)),
+    seq(token),
+  );
+
+
 }
