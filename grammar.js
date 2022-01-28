@@ -12,8 +12,6 @@ const RESERVED_TEXT_CHARS = ['\r', '\n',  '#', '$', '\\'];
 const FILE_QUOTE = genQuotes(' ','#','\\',':');
 const PATT_QUOTE = genQuotes('%');
 
-const AUTO_VAR = ['@','%','<','?','^','+','|','*','?'];
-
 module.exports = grammar({
   name: 'make',
 
@@ -49,9 +47,9 @@ module.exports = grammar({
   ],
 
   supertypes: $ => [
-    $._rule,
-    $._directive,
     $._variable_definition,
+    $._directive,
+    $._rule,
   ],
 
   rules: {
@@ -73,6 +71,7 @@ module.exports = grammar({
       $.target_specific,
       $.pattern_specific,
       $.variable_assignment,
+      $.define_directive,   // 6.8
     ),
 
     target_specific: $ => choice(
@@ -170,7 +169,7 @@ module.exports = grammar({
     //
 
     recipe: $ => seq(
-      optional($._special_prefix),
+      repeat($._special_prefix),
       choice(
         $._simple_recipe_line,
         $._wraped_recipe_line,
@@ -205,7 +204,6 @@ module.exports = grammar({
       $.export_directive,   // 5.7.2
       $.unexport_directive, // 5.7.2
       $.override_directive, // 6.7
-      $.define_directive,   // 6.8
       $.undefine_directive, // 6.9
       $.conditional_directive, // 7
       // load_directive // 12.2.1 TODO
@@ -439,12 +437,10 @@ module.exports = grammar({
     // =========
     _expansion: $ => choice(
       $.variable_reference,
-      $.automatic_variable,
       $.quote
     ),
 
     _expansion_immd: $ => choice(
-      alias($.automatic_variable_immd, $.automatic_variable),
       alias($.variable_reference_immd, $.variable_reference),
       alias($.quote_immd             , $.quote),
     ),
@@ -461,16 +457,6 @@ module.exports = grammar({
       seq( immd('$$'), $._secondary_expansion, $._variable_reference),
     ),
 
-    automatic_variable:      $ => choice(
-      seq(token('$') , $._automatic_variable),
-      seq(token('$$'), $._secondary_expansion, $._automatic_variable),
-    ),
-
-    automatic_variable_immd: $ => choice(
-      seq( immd('$') , $._automatic_variable),
-      seq( immd('$$'), $._secondary_expansion, $._automatic_variable),
-    ),
-
     quote:      $ => seq(token('$$')),
     quote_immd: $ => seq( immd('$$')),
 
@@ -480,12 +466,6 @@ module.exports = grammar({
       alias(immd(/[^${(]/), $.variable),
       seq(immd('{'), optional(alias(/[^\s:=#}]+/,$.variable)), immd('}')),
       seq(immd('('), optional(alias(/[^\s:=#)]+/,$.variable)), immd(')')),
-    ),
-
-    _automatic_variable: $ => choice(
-      immd(prec(2,choice(...AUTO_VAR))),
-      seq(immd('{'), immd(prec(2,choice(...AUTO_VAR))), optional(immd(choice('D','F'))), immd('}')),
-      seq(immd('('), immd(prec(2,choice(...AUTO_VAR))), optional(immd(choice('D','F'))), immd(')')),
     ),
 
     // Some tokens
