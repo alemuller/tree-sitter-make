@@ -22,11 +22,9 @@ int lex_name(TSLexer *lexer) {/*!re2c
     charset   = [^\x00\r\n\t#$=: ];
     backslash = "\\";
 
-    expansion = "$" [^$#{(]
-              | "${" [^\r\n}]* "}"
-              | "$(" [^\r\n)]* ")";
-
-    // TODO .SECONDEXPANSION
+    expansion = "$"? "$" [^$#{(]
+              | "$"? "${" [^\r\n}]* "}"
+              | "$"? "$(" [^\r\n)]* ")";
 
     wsp = [ \t]|"\\\n"|"\\\r\n";
 
@@ -56,10 +54,11 @@ int lex_name(TSLexer *lexer) {/*!re2c
 
     // remeber, rules that appear first have precedence
     ".RECIPEPREFIX"    wsp* assignop { return RECIPEPREFIX_VAR;    }
-    ".SECONDEXPANSION" wsp* assignop { return SECONDEXPANSION_VAR; }
     variable           wsp* assignop { return ASSIGNMENT_MARK;     }
 
-    filename (wsp+ filename)* wsp* rulesep { return FILENAME_SPEC; }
-    pattern  (wsp+  pattern)* wsp* rulesep { return PATTERN_SPEC;  }
+    ".SECONDEXPANSION" (wsp+ filename)* wsp* rulesep { return SECONDEXPANSION_FN; }
+    ".SECONDEXPANSION" (wsp+  pattern)* wsp* rulesep { return SECONDEXPANSION_PAT; }
+    filename           (wsp+ filename)* wsp* rulesep { return FILENAME_SPEC; }
+    pattern            (wsp+  pattern)* wsp* rulesep { return PATTERN_SPEC;  }
 
 */}

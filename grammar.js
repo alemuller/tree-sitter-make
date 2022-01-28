@@ -23,6 +23,7 @@ module.exports = grammar({
     $._pattern_marker,
     $.recipeprefix,
     $._rule_marker,
+    $._secondary_expansion
   ],
 
   extras: $ => [
@@ -173,7 +174,6 @@ module.exports = grammar({
       choice(
         $._simple_recipe_line,
         $._wraped_recipe_line,
-        $._nl
       )
     ),
 
@@ -181,11 +181,11 @@ module.exports = grammar({
       ...['+','-','@'].map(c => immd(prec(1,c)))),
 
     // newline shall is part of shell_code
-    _simple_recipe_line: $ => alias($.til_terminator, $.shell_code),
+    _simple_recipe_line: $ => alias($._til_terminator, $.shell_code),
 
     // recipeprefix isn't part of the shell_code
     _wraped_recipe_line: $ => seq(
-      alias($.til_line_split, $.shell_code),
+      alias($._til_line_split, $.shell_code),
       choice(
         seq(optional($.recipeprefix), $._simple_recipe_line),
         seq(optional($.recipeprefix), $._wraped_recipe_line),
@@ -193,8 +193,8 @@ module.exports = grammar({
     ),
 
     // DO NOT INLINE (aliased as shell code)
-    til_terminator: $ => seq($._line, $._nl),
-    til_line_split: $ => seq($._line, $.split),
+    _til_terminator: $ => seq(optional($._line), $._nl),
+    _til_line_split: $ => seq(optional($._line), $.split),
 
     // ==========
     // Directives
@@ -205,7 +205,7 @@ module.exports = grammar({
       $.export_directive,   // 5.7.2
       $.unexport_directive, // 5.7.2
       $.override_directive, // 6.7
-      // define_directive   // 6.8
+      $.define_directive,   // 6.8
       $.undefine_directive, // 6.9
       $.conditional_directive, // 7
       // load_directive // 12.2.1 TODO
@@ -244,12 +244,26 @@ module.exports = grammar({
 
     override_directive: $ => choice(
       seq('override', $.variable_assignment),
+      seq('override', $.define_directive),
       seq('override', $.undefine_directive),
     ),
 
     undefine_directive: $ => seq(
       'undefine', $.variable, $._nl
     ),
+
+    // TODO: allow nested directives
+    define_directive: $ => seq(
+      'define',
+      field('name', $.variable),
+      field('operator', optional(choice(...ASSIGNMENT_OPERATOR))),
+      $._nl,
+      field('value', optional(alias($._definition_value, $.text))),
+      'endef',
+      $._nl,
+    ),
+
+    _definition_value: $ => repeat1($._til_terminator),
 
     // ----------------------
     // Conditional Directives
@@ -398,10 +412,10 @@ module.exports = grammar({
     )),
 
     prerequisites: $ => repeat1(choice(
-        $.filename,
-        $.pattern,
-        $.archive,
-        $.library,
+      $.filename,
+      $.pattern,
+      $.archive,
+      $.library,
     )),
 
     // -----
@@ -425,21 +439,40 @@ module.exports = grammar({
     // =========
     _expansion: $ => choice(
       $.variable_reference,
-      $.automatic_variable
+      $.automatic_variable,
+      $.quote
     ),
 
     _expansion_immd: $ => choice(
       alias($.automatic_variable_immd, $.automatic_variable),
       alias($.variable_reference_immd, $.variable_reference),
+      alias($.quote_immd             , $.quote),
     ),
 
     //
 
-    variable_reference     : $ => seq(token('$'), $._variable_reference),
-    variable_reference_immd: $ => seq( immd('$'), $._variable_reference),
+    variable_reference: $ => choice(
+      seq(token('$') , $._variable_reference),
+      seq(token('$$'), $._secondary_expansion, $._variable_reference),
+    ),
 
-    automatic_variable     : $ => seq(token('$'), $._automatic_variable),
-    automatic_variable_immd: $ => seq( immd('$'), $._automatic_variable),
+    variable_reference_immd: $ => choice(
+      seq( immd('$') , $._variable_reference),
+      seq( immd('$$'), $._secondary_expansion, $._variable_reference),
+    ),
+
+    automatic_variable:      $ => choice(
+      seq(token('$') , $._automatic_variable),
+      seq(token('$$'), $._secondary_expansion, $._automatic_variable),
+    ),
+
+    automatic_variable_immd: $ => choice(
+      seq( immd('$') , $._automatic_variable),
+      seq( immd('$$'), $._secondary_expansion, $._automatic_variable),
+    ),
+
+    quote:      $ => seq(token('$$')),
+    quote_immd: $ => seq( immd('$$')),
 
     //
 
