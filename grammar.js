@@ -458,17 +458,20 @@ module.exports = grammar({
         immd('{'),
         field('function', alias($.varref_braces, $.name)),
         $._blank, // shall have at least one blank after name
-        sepBy(',', field('argument', alias($._stop_at_endbraces, $.text))),
+        sepBy(',', field('argument', optional(alias($.argument_braces, $.text)))),
         immd('}')
       ),
       seq(
         immd('('),
         field('function', alias($.varref_parent, $.name)),
         $._blank, // shall have at least one blank after name
-        sepBy(',', field('argument', alias($._stop_at_endparent, $.text))),
+        sepBy(',', field('argument', optional(alias($.argument_paren, $.text)))),
         immd(')')
       ),
     ),
+
+    argument_braces: $ => sepBy($.split, $._stop_at_endparent),
+    argument_paren : $ => sepBy($.split, $._stop_at_endparent),
 
     // Text
     // ====
