@@ -6,7 +6,8 @@
 #include <tree_sitter/parser.h>
 
 #define EAT_LEADING_WHITESPACE(lexer) \
-  while (isspace(lexer->lookahead)) \
+  while (lexer->lookahead == ' ' || \
+         lexer->lookahead == '\t') \
     lexer->advance(lexer,true)
 
 #define NDEBUG 0
@@ -113,8 +114,12 @@ const bool *valid_symbols) {
   switch (ret) {
     case RECIPEPREFIX_VAR:
       EAT_LEADING_WHITESPACE(lexer);
-      if (valid_symbols[ASSIGNMENT_MARK])
-        scanner->recipeprefix = YYPEEK;
+      if (valid_symbols[ASSIGNMENT_MARK]) {
+        if (YYPEEK == '\r' || YYPEEK == '\n')
+          scanner->recipeprefix = '\t';
+        else
+          scanner->recipeprefix = YYPEEK;
+      }
 
     case ASSIGNMENT_MARK:
       YYSETSYMBOL(ASSIGNMENT_MARK);
