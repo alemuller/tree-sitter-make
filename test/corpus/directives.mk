@@ -261,6 +261,10 @@ endif
 
 ---
 
+; NOTE
+; The error is due tree-sitter not reseting the scanner
+; state between test cases
+
 (makefile
   (conditional_directive
     (condition
@@ -328,3 +332,11 @@ endif
           (variable))
         (variable_reference
           (variable))))))
+
+
+================================================
+TODO
+================================================
+ifeq "\" '\'
+endif
+

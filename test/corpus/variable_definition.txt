@@ -96,11 +96,14 @@ Variable definition, assignment, variable name, conflicts with line split
 
 (makefile
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable)))
+    name: (variable)
+    (split)))
 
 ================================================================================
 Variable definition, assignment, delimiter, \020
@@ -172,15 +175,20 @@ Variable definition, assignment, delimiter, \\\n
 
 (makefile
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable)))
+    name: (variable)
+    (split)))
 
 ================================================================================
 Variable definition, assignment, delimiter, \\\r\n
@@ -202,17 +210,23 @@ Variable definition, assignment, delimiter, \\\r\n
 
 (makefile
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable)))
+    name: (variable)
+    (split)))
 
 ================================================================================
 Variable definition, assignment, variable name, line split with space
@@ -230,13 +244,17 @@ a \
 
 (makefile
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable))
+    name: (variable)
+    (split))
   (variable_assignment
-    name: (variable)))
+    name: (variable)
+    (split)))
 
 ================================================================================
 Variable definition, assignment, variable name, variable expansion I
@@ -328,8 +346,8 @@ var := foo\
 
 (makefile
   (variable_assignment
-     name: (variable)
-    value: (text)))
+    name: (variable)
+    value: (text (split))))
 
 ================================================================================
 Variable definition, assignment, value, line wrap, multiple lines
@@ -342,8 +360,10 @@ baz
 
 (makefile
   (variable_assignment
-     name: (variable)
-    value: (text)))
+    name: (variable)
+    value: (text
+      (split)
+      (split))))
 
 ================================================================================
 Variable definition, assignment, value, expansion
@@ -407,3 +427,89 @@ f%o:override bar=
     (override_directive
       (variable_assignment
         name: (variable)))))
+
+================================================================================
+Variable definition, names, directives
+================================================================================
+# Directives aren't reserved words
+define =
+endef =
+undefine =
+ifdef =
+ifndef =
+ifeq =
+ifneq =
+else =
+endif =
+include =
+!include =
+sinclude =
+override =
+export =
+unexport =
+private =
+vpath =
+
+---
+
+(makefile
+  (comment)
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable))
+  (variable_assignment
+    name: (variable)))
+
+
+================================================================================
+Variable definition, value, leading blank
+================================================================================
+# Leading blank shall not be included on the value
+foo=   bar
+foo=	bar
+foo=\
+bar
+
+---
+
+(makefile
+  (comment)
+  (variable_assignment
+    name: (variable)
+    value: (text))
+  (variable_assignment
+    name: (variable)
+    value: (text))
+  (variable_assignment
+    name: (variable)
+    (split)
+    value: (text)))
