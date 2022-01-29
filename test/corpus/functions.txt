@@ -2,5 +2,14 @@
 Function, file
 ============================================
 x = $(file <, foo.bar)
+
 ---
 
+(makefile
+  (variable_assignment
+    name: (variable)
+    value: (text
+      (function_expansion
+        function: (name)
+        argument: (text)
+        argument: (text)))))
