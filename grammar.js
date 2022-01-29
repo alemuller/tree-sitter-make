@@ -3,14 +3,10 @@ const immd = (x) => token.immediate(x);
 const ASSIGNMENT_OPERATOR = [ '=',':=','::=','+=','?=','!=' ];
 const RULE_SEPARATOR = [ ':','::','&:','&::' ];
 
-const VARIABLE = /[^\s\\$:#=+?!]+/;
-const TARGET   = /[^\s\\$:#=&%()]+/;
-const ANY  = /[^\s#:=]/;
-
-const RESERVED_TEXT_CHARS = ['\r', '\n',  '#', '$', '\\'];
-
-const FILE_QUOTE = genQuotes(' ','#','\\',':');
-const PATT_QUOTE = genQuotes('%');
+const BLANK   = [' ','\t'];
+const NEWLINE = ['\f','\n','\r','\v'];
+const LINE_SPLIT = ['\\\r\n', '\\\n'];
+const PATHSEP = [':'];
 
 module.exports = grammar({
   name: 'make',
@@ -21,7 +17,7 @@ module.exports = grammar({
     $._pattern_marker,
     $.recipeprefix,
     $._rule_marker,
-    $._secondary_expansion
+    $._2nd_expansion
   ],
 
   extras: $ => [
@@ -31,19 +27,15 @@ module.exports = grammar({
   ],
 
   inline: $ => [
-    //
-    $._variable_special, $._variable_special_immd,
-    $._filename_special, $._filename_special_immd,
-    $._pattern_special , $._pattern_special_immd ,
-    //
     $._inlined_recipe_context,
     $._default_recipe_context,
   ],
 
   conflicts: $ => [
     // target specification conflict
-    [$.filename       , $.pattern      ],
-    [$._filename_rest , $._pattern_rest],
+    [$.filename, $.pattern],
+    [$.pattern],
+    [$.filename],
   ],
 
   supertypes: $ => [
@@ -58,10 +50,10 @@ module.exports = grammar({
 
     _kind_of_things: $ => choice(
       $._variable_definition,
-      $._recipe_line,
       $._directive,
       $._rule,
-      $._nl
+      $._expansion,
+      $._nl,
     ),
 
     // ===================
@@ -91,9 +83,12 @@ module.exports = grammar({
       $._variable_marker,
       field('name', $.variable),
       field('operator', choice(...ASSIGNMENT_OPERATOR)),
-      field('value', optional(alias($.value, $.text))),
+      optional($._blank), // leading blank shall not be matched by text
+      field('value', optional(alias($.assignment_value, $.text))),
       $._nl
     ),
+
+    assignment_value: $ => sepBy($.split, $._stop_at_comment),
 
     // =====
     // Rules
@@ -125,10 +120,13 @@ module.exports = grammar({
     ordinary_rule: $ => seq(
       $._filenames_specification,
       optional($.prerequisites),
-      optional(seq(
-        '|', optional(alias($.prerequisites, $.order_prerequisites))
-      )),
+      optional($._order_only_prereq),
       $.recipe_context
+    ),
+
+    _order_only_prereq: $ => seq(
+      '|',
+      optional(alias($.prerequisites, $.order_prerequisites))
     ),
 
     pattern_rule: $ => seq(
@@ -145,28 +143,34 @@ module.exports = grammar({
       $.recipe_context
     ),
 
-    // -------
-    // Recipes
-    // -------
-    recipe_context: $ => prec.left(choice(
+    // ======
+    // Recipe
+    // ======
+    recipe_context: $ => prec.right(choice(
       $._inlined_recipe_context,
       $._default_recipe_context,
     )),
 
     _inlined_recipe_context: $ => seq(
       seq(';', $._rule_marker, $.recipe),
-      repeat($._kind_of_things)
+      repeat(choice(
+        $.conditional_directive,
+        $._recipe_line,
+        $._nl
+      ))
     ),
 
     _default_recipe_context: $ => seq(
       $._nl,
       $._rule_marker,
-      repeat($._kind_of_things)
+      repeat(choice(
+        $.conditional_directive,
+        $._recipe_line,
+        $._nl
+      ))
     ),
 
     _recipe_line: $ => seq($.recipeprefix, $.recipe),
-
-    //
 
     recipe: $ => seq(
       repeat($._special_prefix),
@@ -176,24 +180,19 @@ module.exports = grammar({
       )
     ),
 
+    // leading blanks are ignored
     _special_prefix: $ => choice(
-      ...['+','-','@'].map(c => immd(prec(1,c)))),
+      ...['+','-','@',...BLANK].map(c => immd(prec(1,c)))),
 
-    // newline shall is part of shell_code
-    _simple_recipe_line: $ => alias($._til_terminator, $.shell_code),
+    _simple_recipe_line: $ => alias($._stop_after_newline, $.shell_code),
 
-    // recipeprefix isn't part of the shell_code
     _wraped_recipe_line: $ => seq(
-      alias($._til_line_split, $.shell_code),
+      alias($._stop_after_split, $.shell_code),
       choice(
         seq(optional($.recipeprefix), $._simple_recipe_line),
         seq(optional($.recipeprefix), $._wraped_recipe_line),
       )
     ),
-
-    // DO NOT INLINE (aliased as shell code)
-    _til_terminator: $ => seq(optional($._line), $._nl),
-    _til_line_split: $ => seq(optional($._line), $.split),
 
     // ==========
     // Directives
@@ -225,7 +224,7 @@ module.exports = grammar({
       $.filename,
       repeat(seq(
         immd(':'),
-        alias($._filename_immd, $.filename)
+        alias($.filename_immd, $.filename)
       ))
     ),
 
@@ -256,12 +255,12 @@ module.exports = grammar({
       field('name', $.variable),
       field('operator', optional(choice(...ASSIGNMENT_OPERATOR))),
       $._nl,
-      field('value', optional(alias($._definition_value, $.text))),
+      field('value', optional(alias($.definition_value, $.text))),
       'endef',
       $._nl,
     ),
 
-    _definition_value: $ => repeat1($._til_terminator),
+    definition_value: $ => repeat1(seq($._stop_at_comment, $._nl)),
 
     // ----------------------
     // Conditional Directives
@@ -278,7 +277,10 @@ module.exports = grammar({
       optional($.alternative)
     ),
 
-    body: $ => repeat1(choice($._kind_of_things)),
+    body: $ => repeat1(choice(
+      $._kind_of_things,
+      $._recipe_line
+    )),
 
     alternative: $ => choice(
       seq('else', $._conditional_directive),
@@ -288,21 +290,20 @@ module.exports = grammar({
     condition: $ => choice(
       seq('ifeq' ,  $.comparison, $._nl),
       seq('ifneq',  $.comparison, $._nl),
-      seq('ifdef',  $.variable, $._nl),
-      seq('ifndef', $.variable, $._nl),
+      seq('ifdef',  $.variable  , $._nl),
+      seq('ifndef', $.variable  , $._nl),
     ),
 
     comparison: $ => choice(
-      seq('(', field('arg1', optional($._arg1) ), ',', field('arg2', optional($._arg2) ), ')'),
-      seq(     field('arg1',          $._string),      field('arg2',          $._string)     ),
+      seq('(', field('arg1', optional($._arg)), ',', field('arg2', optional($._arg)), ')'),
+      seq(     field('arg1',          $._str),       field('arg2',          $._str)      ),
     ),
 
-    _arg1: $ => alias($.text_no_comma, $.text),
-    _arg2: $ => alias($.text_no_paren, $.text),
+    _arg: $ => alias($._stop_at_endparent, $.text),
 
-    _string: $ => choice(
-      seq("'",  optional(alias($.text_no_squote, $.text)), immd("'")),
-      seq('"',  optional(alias($.text_no_dquote, $.text)), immd('"'))
+    _str: $ => choice(
+      seq("'",  optional(alias($._stop_at_squote, $.text)), immd("'")),
+      seq('"',  optional(alias($._stop_at_dquote, $.text)), immd('"'))
     ),
 
     // ===============
@@ -312,94 +313,37 @@ module.exports = grammar({
     // -----
     // Names
     // -----
+    // TODO only use this rule on assignents,
+    // others variables can use a simpler rule
+    variable: $ => {
+      // set of leading chars of ASSIGNMENT_OPERATOR
+      const CONFLICT = ASSIGNMENT_OPERATOR.reduce((set, op) =>
+        set.includes(op[0]) ? set : set.concat(op[0]), ['\\']);
 
-    variable: $ => genNameBegin(
-      token(TARGET),
-      $._variable_special,
-      $._variable_special_immd,
-      $._variable_rest
-    ),
+      const NIBBLE = repeat1(anyBut(
+        ...CONFLICT, ...BLANK, ...NEWLINE, '$', '#'
+      ));
 
-    filename: $ => prec.dynamic(1,genNameBegin(
-      token(TARGET),
-      $._filename_special,
-      $._filename_special_immd,
-      $._filename_rest
-    )),
+      return genText($,
+        token(NIBBLE), choice($._expansion     , token(choice(...CONFLICT))),
+         immd(NIBBLE), choice($._expansion_immd,  immd(choice(...CONFLICT))),
+      );
+    },
 
-    pattern: $ => genNameBegin(
-      token(TARGET),
-      $._pattern_special,
-      $._pattern_special_immd,
-      $._pattern_rest
-    ),
+    filename      : $ => prec.dynamic(1,genTarget($,'filename')),
+    filename_immd : $ => genTarget($,'filename',true),
+    pattern       : $ => genTarget($,'pattern'),
+    pattern_immd  : $ => genTarget($,'pattern' ,true, '}'),
 
-    _variable_rest: $ => choice(
-      seq(immd(VARIABLE)),
-      seq(immd(VARIABLE), repeat1($._variable_special_immd)),
-      seq(immd(VARIABLE), repeat1($._variable_special_immd), $._variable_rest),
-    ),
-
-    _filename_rest: $ => choice(
-      seq(immd(TARGET)),
-      seq(immd(TARGET), repeat1($._filename_special_immd)),
-      seq(immd(TARGET), repeat1($._filename_special_immd), $._filename_rest),
-    ),
-
-    _pattern_rest: $ => choice(
-      seq(immd(TARGET)),
-      seq(immd(TARGET), repeat1($._pattern_special_immd)),
-      seq(immd(TARGET), repeat1($._pattern_special_immd), $._pattern_rest),
-    ),
-
-    _variable_special: $ => choice(
-      token(ANY),
-      $._expansion
-    ),
-
-    _variable_special_immd: $ => choice(
-      immd(ANY),
-      $._expansion_immd
-    ),
-
-    _filename_special: $ => choice(
-      token(ANY),
-      alias(token(FILE_QUOTE),$.quote),
-      $._expansion
-    ),
-
-    _filename_special_immd: $ => choice(
-      immd(ANY),
-      alias(immd(FILE_QUOTE),$.quote),
-      $._expansion_immd
-    ),
-
-    _pattern_special: $ => choice(
-      token(ANY),
-      token(prec(2,'%')),
-      alias(token(FILE_QUOTE),$.quote),
-      alias(token(PATT_QUOTE),$.quote),
-      $._expansion
-    ),
-
-    _pattern_special_immd: $ => choice(
-      immd(ANY),
-      immd(prec(2,'%')),
-      alias(immd(FILE_QUOTE),$.quote),
-      alias(immd(PATT_QUOTE),$.quote),
-      $._expansion_immd
-    ),
-
-    library:  $ => seq(token(prec(2,'-l')), optional($._filename_immd)),
+    library:  $ => seq(token(prec(2,'-l')), optional(immd(/[^\s]+/))),
 
     archive: $ => seq(
       field('name',$.filename),
       immd('('),
+      field('member', alias($.filename_immd, $.filename)),
       repeat(field('member', $.filename)),
       immd(')'),
     ),
-
-    _filename_immd: $ => seq(repeat($._filename_special_immd), $._filename_rest),
 
     // List of names
     // -------------
@@ -416,131 +360,223 @@ module.exports = grammar({
       $.library,
     )),
 
-    // -----
-    // Text
-    // -----
-    // value shall not include leading spaces
-    value: $ => seq(
-      genText($,' ','\t'),
-      optional($._line)
-    ),
-
-    _line: $ => genTextImmd($,''),
-    text_no_squote: $ => genTextImmd($,"'"),
-    text_no_dquote: $ => genTextImmd($,'"'),
-    text_no_comma:  $ => genTextImmd($,','),
-    text_no_paren:  $ => genTextImmd($,')'),
-    text_no_brace:  $ => genTextImmd($,'}'),
-
     // =========
     // Expansion
     // =========
     _expansion: $ => choice(
       $.variable_reference,
+      $.substitution_reference,
+      $.function_expansion,
       $.quote
     ),
 
     _expansion_immd: $ => choice(
-      alias($.variable_reference_immd, $.variable_reference),
-      alias($.quote_immd             , $.quote),
+      alias($.variable_reference_immd    , $.variable_reference),
+      alias($.function_expansion_immd    , $.function_expansion),
+      alias($.substitution_reference_immd, $.substitution_reference),
+      alias($.quote_immd                 , $.quote),
     ),
 
     //
 
     variable_reference: $ => choice(
       seq(token('$') , $._variable_reference),
-      seq(token('$$'), $._secondary_expansion, $._variable_reference),
+      seq(token('$$'), $._2nd_expansion, $._variable_reference),
     ),
 
     variable_reference_immd: $ => choice(
-      seq( immd('$') , $._variable_reference),
-      seq( immd('$$'), $._secondary_expansion, $._variable_reference),
+      seq(immd('$') , $._variable_reference),
+      seq(immd('$$'), $._2nd_expansion, $._variable_reference),
     ),
+
+    //
+
+    substitution_reference: $ => choice(
+      seq(token('$') , $._substitution_reference),
+      seq(token('$$'), $._2nd_expansion, $._substitution_reference),
+    ),
+
+    substitution_reference_immd: $ => choice(
+      seq(immd('$') , $._substitution_reference),
+      seq(immd('$$'), $._2nd_expansion, $._substitution_reference),
+    ),
+
+    //
+
+    function_expansion: $ => choice(
+      seq(token('$') , $._function_expansion),
+      seq(token('$$'), $._2nd_expansion, $._function_expansion),
+    ),
+
+    function_expansion_immd: $ => choice(
+      seq(immd('$') , $._function_expansion),
+      seq(immd('$$'), $._2nd_expansion, $._function_expansion),
+    ),
+
+    //
 
     quote:      $ => seq(token('$$')),
     quote_immd: $ => seq( immd('$$')),
 
     //
 
+    // TODO: recursive expansion
+    // NOTE: only restriction is not ":"
     _variable_reference: $ => choice(
       alias(immd(/[^${(]/), $.variable),
-      seq(immd('{'), optional(alias(/[^\s:=#}]+/,$.variable)), immd('}')),
-      seq(immd('('), optional(alias(/[^\s:=#)]+/,$.variable)), immd(')')),
+      seq(immd('{'), optional(alias($.varref_braces,$.variable)), immd('}')),
+      seq(immd('('), optional(alias($.varref_parent,$.variable)), immd(')')),
     ),
+
+
+    _substitution_reference: $ => choice(
+      seq(
+        immd('{'),
+        optional(alias($.varref_braces,$.variable)),
+        $._subs_ref,
+        immd('}')
+      ),
+      seq(
+        immd('('),
+        optional(alias($.varref_parent,$.variable)),
+        $._subs_ref,
+        immd(')')
+      ),
+    ),
+
+    _subs_ref: $ => seq(
+      immd(':'),
+      field('from', alias($.pattern_immd,$.pattern)),
+      immd('='),
+      field('to', alias($.pattern_immd,$.pattern)),
+    ),
+
+    // Function expansion
+    // ------------------
+    _function_expansion: $ => choice(
+      seq(
+        immd('{'),
+        field('function', alias($.varref_braces, $.name)),
+        $._blank, // shall have at least one blank after name
+        sepBy(',', field('argument', alias($._stop_at_endbraces, $.text))),
+        immd('}')
+      ),
+      seq(
+        immd('('),
+        field('function', alias($.varref_parent, $.name)),
+        $._blank, // shall have at least one blank after name
+        sepBy(',', field('argument', alias($._stop_at_endparent, $.text))),
+        immd(')')
+      ),
+    ),
+
+    // Text
+    // ====
+    _stop_at_endparent: $ => immdText($,textToken(')',',')),
+    _stop_at_endbraces: $ => immdText($,textToken('}',',')),
+    _stop_at_comment:   $ => immdText($,textToken('#')),
+    _stop_at_squote:    $ => immdText($,textToken('#',"'")),
+    _stop_at_dquote:    $ => immdText($,textToken('#','"')),
+
+    _stop_after_newline: $ => seq(optional(immdText($,textToken(''))), $._nl),
+    _stop_after_split  : $ => seq(optional(immdText($,textToken(''))), $.split),
+
+    varref_braces: $ => immdText($,textToken(' ','\t','#',':','=','}')),
+    varref_parent: $ => immdText($,textToken(' ','\t','#',':','=',')')),
 
     // Some tokens
     // ===========
-    _nl: $ => token(choice('\n','\r\n')),
-
-    split: $ => token(seq('\\',choice('\n','\r\n'))),
+    _blank: $ => repeat1(choice(
+      immd(choice(...BLANK)),
+      alias(immd(choice(...LINE_SPLIT)), $.split),
+    )),
 
     comment: $ => token(/#(.*?\\\r?\n)*.*\r?\n/),
+
+    split: $ => token(choice(...LINE_SPLIT)),
+    _nl:   $ => token(choice(...NEWLINE)),
+
   }
 
 });
 
+function sepBy(del, rule) {
+  return seq(rule, repeat(seq(del, rule)));
+}
+
 // From https://stackoverflow.com/a/6969486
 function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // create a negated character class
-function anyBut(excludeSet) {
-  let escaped = excludeSet.map(escapeRegExp);
+function anyBut(...excludeset) {
+  //let set = [new Set(excludeset)]; // TODO
 
-  return new RegExp('[^' + escaped.join('') + ']');
+  let esc = [...excludeset.map(escapeRegExp)];
+  return new RegExp('[^' + esc.join('') + ']');
 }
 
-function genQuotes() {
-  let arr = Array(...arguments);
-
-  return choice(...arr.map(c => seq('\\',c)))
-}
-
-
-// TODO: refactor
-function genTextImmd($,...exclude) {
-  let negCharset = anyBut(
-    RESERVED_TEXT_CHARS.concat(...exclude));
-
-  return repeat1(choice(
-    // greedy token
-    immd(repeat1(choice(
-      negCharset,
-      /\\./
-    ))),
-    $._expansion_immd
-  ));
-}
-
-// TODO: refactor
-function genText($,...exclude) {
-  let negCharset = anyBut(RESERVED_TEXT_CHARS.concat(...exclude));
-
-  return repeat1(choice(
-    // greedy token
-    token(repeat1(choice(
-      negCharset,
-      /\\./
-    ))),
-    $._expansion
-  ));
-}
-
-function genNameBegin(token, nested, nestedImmed, rest) {
-
-  // tok shall not be followed by another tok
+function genText($, token, nested, tokenImmd, nestedImmd) {
+  // nested rules may be followed by another nested rules
+  // token shall not be followed by another token
+  const trailing = repeat(seq(nestedImmd, optional(tokenImmd)));
 
   return choice(
-    seq(nested, repeat1(nestedImmed), rest),
-    seq(nested, repeat1(nestedImmed)),
-    seq(nested, rest),
-    seq(nested),
-    //
-    seq(token, repeat1(nestedImmed), rest),
-    seq(token, repeat1(nestedImmed)),
-    seq(token),
+    seq(token                      , trailing),
+    seq(nested, optional(tokenImmd), trailing),
   );
+}
+
+function genTarget($, kind, immediate=false, exclude='') {
+
+  const quote = (rule) => alias(rule,$.quote);
+
+  const CONFLICT = RULE_SEPARATOR.reduce((set, op) =>
+    set.includes(op[0]) ? set : set.concat(op[0]), ['\\']);
+
+  const NIBBLE = repeat1(anyBut(
+    ...CONFLICT, ...BLANK, ...NEWLINE, '$', '%', '#', '(', ')', '=', ...exclude
+  ));
+
+  const QUOTE = seq('\\',anyBut(...NEWLINE, '%', '$', '='));
+
+  let nested     = [quote(token(QUOTE)), token(choice(...CONFLICT))];
+  let nestedImmd = [quote( immd(QUOTE)),  immd(choice(...CONFLICT))];
+
+  if (kind == 'pattern') {
+    nested.push(quote(token('\\'+'%')));
+    nested.push(token('%'));
+
+    nestedImmd.push(quote(immd('\\'+'%')));
+    nestedImmd.push(immd('%'));
+  }
+
+  if (immediate == true) {
+
+    return genText($,
+      immd(NIBBLE), choice($._expansion_immd, ...nestedImmd),
+      immd(NIBBLE), choice($._expansion_immd, ...nestedImmd),
+    );
+  }
+
+  return genText($,
+    token(NIBBLE), choice($._expansion     , ...nested     ),
+     immd(NIBBLE), choice($._expansion_immd, ...nestedImmd),
+  );
+}
 
 
+function immdText($,regex) {
+  return genText($,
+    immd(regex), choice($._expansion_immd, immd(/\\/)),
+    immd(regex), choice($._expansion_immd, immd(/\\/))
+  );
+}
+
+function textToken(...stopset) {
+  let char  =           anyBut('\r','\n','$',...stopset,'\\');
+  let quote = seq('\\', anyBut('\r','\n','$',...stopset));
+
+  return repeat1(choice(char, quote));
 }
