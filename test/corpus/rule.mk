@@ -93,12 +93,18 @@ foo.[abc]*:
 ================================================================================
 Rule, targets, archive
 ================================================================================
+(bar):
 foo(bar):
 foo(bar baz):
 
 ---
 
 (makefile
+  (ordinary_rule
+    (targets
+      (archive
+        member: (filename)))
+    (recipe_context))
   (ordinary_rule
     (targets
       (archive
@@ -112,7 +118,6 @@ foo(bar baz):
         member: (filename)
         member: (filename)))
     (recipe_context)))
-
 ================================================================================
 Rule, targets, archive, wildcard
 ================================================================================

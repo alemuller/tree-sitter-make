@@ -337,12 +337,20 @@ module.exports = grammar({
 
     library:  $ => seq(token(prec(2,'-l')), optional(immd(/[^\s]+/))),
 
-    archive: $ => seq(
-      field('name',$.filename),
-      immd('('),
-      field('member', alias($.filename_immd, $.filename)),
-      repeat(field('member', $.filename)),
-      immd(')'),
+    archive: $ => choice(
+      seq(
+        field('name',$.filename),
+        immd('('),
+        field('member', alias($.filename_immd, $.filename)),
+        repeat(field('member', $.filename)),
+        immd(')'),
+      ),
+      seq(
+        '(',
+        field('member', alias($.filename_immd, $.filename)),
+        repeat(field('member', $.filename)),
+        immd(')'),
+      ),
     ),
 
     // List of names
