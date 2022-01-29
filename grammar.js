@@ -33,9 +33,8 @@ module.exports = grammar({
 
   conflicts: $ => [
     // target specification conflict
-    [$.filename, $.pattern],
-    [$.pattern],
-    [$.filename],
+    [$.filename     , $.pattern],
+    [$.filename_immd, $.pattern_immd],
   ],
 
   supertypes: $ => [
@@ -331,27 +330,27 @@ module.exports = grammar({
     },
 
     filename      : $ => prec.dynamic(1,genTarget($,'filename')),
-    filename_immd : $ => genTarget($,'filename',true),
+    filename_immd : $ => prec.dynamic(1,genTarget($,'filename',true)),
     pattern       : $ => genTarget($,'pattern'),
     pattern_immd  : $ => genTarget($,'pattern' ,true, '}'),
 
     library:  $ => seq(token(prec(2,'-l')), optional(immd(/[^\s]+/))),
 
-    archive: $ => choice(
-      seq(
-        field('name',$.filename),
-        immd('('),
-        field('member', alias($.filename_immd, $.filename)),
-        repeat(field('member', $.filename)),
-        immd(')'),
+    archive: $ => prec.dynamic(1,choice(
+      seq(field('name',$.filename), immd('('), $._members, immd(')')),
+      seq(                               '(' , $._members, immd(')')),
+    )),
+
+    _members: $ => field('member',seq(
+      choice(
+        alias($.filename_immd, $.filename),
+        alias($.pattern_immd , $.pattern),
       ),
-      seq(
-        '(',
-        field('member', alias($.filename_immd, $.filename)),
-        repeat(field('member', $.filename)),
-        immd(')'),
-      ),
-    ),
+      repeat(choice(
+        $.filename,
+        $.pattern
+      )),
+    )),
 
     // List of names
     // -------------
