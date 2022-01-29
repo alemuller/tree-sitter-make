@@ -1,5 +1,39 @@
 [
   {
+    "type": "_directive",
+    "named": true,
+    "subtypes": [
+      {
+        "type": "conditional_directive",
+        "named": true
+      },
+      {
+        "type": "export_directive",
+        "named": true
+      },
+      {
+        "type": "include_directive",
+        "named": true
+      },
+      {
+        "type": "override_directive",
+        "named": true
+      },
+      {
+        "type": "undefine_directive",
+        "named": true
+      },
+      {
+        "type": "unexport_directive",
+        "named": true
+      },
+      {
+        "type": "vpath_directive",
+        "named": true
+      }
+    ]
+  },
+  {
     "type": "_rule",
     "named": true,
     "subtypes": [
@@ -10,6 +44,10 @@
       {
         "type": "pattern_rule",
         "named": true
+      },
+      {
+        "type": "static_pattern_rule",
+        "named": true
       }
     ]
   },
@@ -17,6 +55,10 @@
     "type": "_variable_definition",
     "named": true,
     "subtypes": [
+      {
+        "type": "define_directive",
+        "named": true
+      },
       {
         "type": "pattern_specific",
         "named": true
@@ -30,6 +72,29 @@
         "named": true
       }
     ]
+  },
+  {
+    "type": "alternative",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "alternative",
+          "named": true
+        },
+        {
+          "type": "body",
+          "named": true
+        },
+        {
+          "type": "condition",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "archive",
@@ -58,7 +123,7 @@
     }
   },
   {
-    "type": "filename",
+    "type": "body",
     "named": true,
     "fields": {},
     "children": {
@@ -66,7 +131,35 @@
       "required": false,
       "types": [
         {
+          "type": "_directive",
+          "named": true
+        },
+        {
+          "type": "_rule",
+          "named": true
+        },
+        {
+          "type": "_variable_definition",
+          "named": true
+        },
+        {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
           "type": "quote",
+          "named": true
+        },
+        {
+          "type": "recipe",
+          "named": true
+        },
+        {
+          "type": "recipeprefix",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
           "named": true
         },
         {
@@ -77,7 +170,181 @@
     }
   },
   {
-    "type": "library",
+    "type": "comparison",
+    "named": true,
+    "fields": {
+      "arg1": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "\"",
+            "named": false
+          },
+          {
+            "type": "'",
+            "named": false
+          },
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      },
+      "arg2": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "\"",
+            "named": false
+          },
+          {
+            "type": "'",
+            "named": false
+          },
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "condition",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "comparison",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "conditional_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "alternative",
+          "named": true
+        },
+        {
+          "type": "body",
+          "named": true
+        },
+        {
+          "type": "condition",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "define_directive",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "!=",
+            "named": false
+          },
+          {
+            "type": "+=",
+            "named": false
+          },
+          {
+            "type": "::=",
+            "named": false
+          },
+          {
+            "type": ":=",
+            "named": false
+          },
+          {
+            "type": "=",
+            "named": false
+          },
+          {
+            "type": "?=",
+            "named": false
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "directories",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "filename",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "export_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "variable",
+          "named": true
+        },
+        {
+          "type": "variable_assignment",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "filename",
     "named": true,
     "fields": {},
     "children": {
@@ -85,7 +352,15 @@
       "required": false,
       "types": [
         {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
           "type": "quote",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
           "named": true
         },
         {
@@ -94,6 +369,62 @@
         }
       ]
     }
+  },
+  {
+    "type": "function_expansion",
+    "named": true,
+    "fields": {
+      "argument": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      },
+      "function": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "name",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "split",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "include_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "filename",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "library",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "makefile",
@@ -104,11 +435,85 @@
       "required": false,
       "types": [
         {
+          "type": "_directive",
+          "named": true
+        },
+        {
           "type": "_rule",
           "named": true
         },
         {
           "type": "_variable_definition",
+          "named": true
+        },
+        {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
+          "type": "quote",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
+          "named": true
+        },
+        {
+          "type": "variable_reference",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
+          "type": "quote",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
+          "named": true
+        },
+        {
+          "type": "variable_reference",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "order_prerequisites",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "archive",
+          "named": true
+        },
+        {
+          "type": "filename",
+          "named": true
+        },
+        {
+          "type": "library",
+          "named": true
+        },
+        {
+          "type": "pattern",
           "named": true
         }
       ]
@@ -122,6 +527,10 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "order_prerequisites",
+          "named": true
+        },
         {
           "type": "prerequisites",
           "named": true
@@ -138,6 +547,29 @@
     }
   },
   {
+    "type": "override_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "define_directive",
+          "named": true
+        },
+        {
+          "type": "undefine_directive",
+          "named": true
+        },
+        {
+          "type": "variable_assignment",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "pattern",
     "named": true,
     "fields": {},
@@ -146,7 +578,15 @@
       "required": false,
       "types": [
         {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
           "type": "quote",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
           "named": true
         },
         {
@@ -188,6 +628,14 @@
       "required": true,
       "types": [
         {
+          "type": "export_directive",
+          "named": true
+        },
+        {
+          "type": "override_directive",
+          "named": true
+        },
+        {
           "type": "targets",
           "named": true
         },
@@ -226,9 +674,152 @@
     }
   },
   {
-    "type": "recipe_context",
+    "type": "quote",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "recipe",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "recipeprefix",
+          "named": true
+        },
+        {
+          "type": "shell_code",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "recipe_context",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "conditional_directive",
+          "named": true
+        },
+        {
+          "type": "recipe",
+          "named": true
+        },
+        {
+          "type": "recipeprefix",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "shell_code",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
+          "type": "quote",
+          "named": true
+        },
+        {
+          "type": "split",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
+          "named": true
+        },
+        {
+          "type": "variable_reference",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "static_pattern_rule",
+    "named": true,
+    "fields": {
+      "target_pattern": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pattern",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "prerequisites",
+          "named": true
+        },
+        {
+          "type": "recipe_context",
+          "named": true
+        },
+        {
+          "type": "targets",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "substitution_reference",
+    "named": true,
+    "fields": {
+      "from": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pattern",
+            "named": true
+          }
+        ]
+      },
+      "to": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pattern",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "target_specific",
@@ -238,6 +829,14 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "export_directive",
+          "named": true
+        },
+        {
+          "type": "override_directive",
+          "named": true
+        },
         {
           "type": "targets",
           "named": true
@@ -281,7 +880,53 @@
       "required": false,
       "types": [
         {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
+          "type": "quote",
+          "named": true
+        },
+        {
+          "type": "split",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
+          "named": true
+        },
+        {
           "type": "variable_reference",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "undefine_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "unexport_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "variable",
           "named": true
         }
       ]
@@ -295,6 +940,18 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "function_expansion",
+          "named": true
+        },
+        {
+          "type": "quote",
+          "named": true
+        },
+        {
+          "type": "substitution_reference",
+          "named": true
+        },
         {
           "type": "variable_reference",
           "named": true
@@ -366,6 +1023,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "split",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -374,7 +1041,7 @@
     "fields": {},
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "variable",
@@ -384,11 +1051,46 @@
     }
   },
   {
+    "type": "vpath_directive",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "directories",
+          "named": true
+        },
+        {
+          "type": "pattern",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "\t",
+    "named": false
+  },
+  {
+    "type": " ",
+    "named": false
+  },
+  {
     "type": "!=",
     "named": false
   },
   {
+    "type": "\"",
+    "named": false
+  },
+  {
     "type": "$",
+    "named": false
+  },
+  {
+    "type": "$$",
     "named": false
   },
   {
@@ -404,6 +1106,10 @@
     "named": false
   },
   {
+    "type": "'",
+    "named": false
+  },
+  {
     "type": "(",
     "named": false
   },
@@ -412,7 +1118,19 @@
     "named": false
   },
   {
+    "type": "+",
+    "named": false
+  },
+  {
     "type": "+=",
+    "named": false
+  },
+  {
+    "type": ",",
+    "named": false
+  },
+  {
+    "type": "-",
     "named": false
   },
   {
@@ -436,6 +1154,10 @@
     "named": false
   },
   {
+    "type": ";",
+    "named": false
+  },
+  {
     "type": "=",
     "named": false
   },
@@ -444,19 +1166,91 @@
     "named": false
   },
   {
+    "type": "@",
+    "named": false
+  },
+  {
     "type": "comment",
     "named": true
+  },
+  {
+    "type": "define",
+    "named": false
+  },
+  {
+    "type": "else",
+    "named": false
+  },
+  {
+    "type": "endef",
+    "named": false
+  },
+  {
+    "type": "endif",
+    "named": false
+  },
+  {
+    "type": "export",
+    "named": false
+  },
+  {
+    "type": "ifdef",
+    "named": false
+  },
+  {
+    "type": "ifeq",
+    "named": false
+  },
+  {
+    "type": "ifndef",
+    "named": false
+  },
+  {
+    "type": "ifneq",
+    "named": false
+  },
+  {
+    "type": "include",
+    "named": false
+  },
+  {
+    "type": "override",
+    "named": false
   },
   {
     "type": "private",
     "named": false
   },
   {
-    "type": "quote",
+    "type": "recipeprefix",
     "named": true
   },
   {
+    "type": "sinclude",
+    "named": false
+  },
+  {
+    "type": "split",
+    "named": true
+  },
+  {
+    "type": "undefine",
+    "named": false
+  },
+  {
+    "type": "unexport",
+    "named": false
+  },
+  {
+    "type": "vpath",
+    "named": false
+  },
+  {
     "type": "{",
+    "named": false
+  },
+  {
+    "type": "|",
     "named": false
   },
   {

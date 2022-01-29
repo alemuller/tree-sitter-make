@@ -112,19 +112,26 @@ const bool *valid_symbols) {
 
   switch (ret) {
     case RECIPEPREFIX_VAR:
-      scanner->recipeprefix = YYPEEK;
+      EAT_LEADING_WHITESPACE(lexer);
+      if (valid_symbols[ASSIGNMENT_MARK])
+        scanner->recipeprefix = YYPEEK;
+
     case ASSIGNMENT_MARK:
       YYSETSYMBOL(ASSIGNMENT_MARK);
       return valid_symbols[ASSIGNMENT_MARK];
 
     case SECONDEXPANSION_FN:
-      scanner->secondexpansion = true;
+      if (valid_symbols[FILENAME_SPEC] && begin_of_line)
+        scanner->secondexpansion = true;
+
     case FILENAME_SPEC:
       YYSETSYMBOL(FILENAME_SPEC);
       return valid_symbols[FILENAME_SPEC] && begin_of_line;
 
     case SECONDEXPANSION_PAT:
-      scanner->secondexpansion = true;
+      if (valid_symbols[PATTERN_SPEC] && begin_of_line)
+        scanner->secondexpansion = true;
+
     case PATTERN_SPEC:
       YYSETSYMBOL(ret);
       return valid_symbols[PATTERN_SPEC] && begin_of_line;
@@ -139,7 +146,7 @@ void *tree_sitter_make_external_scanner_create() {
 
   scanner->recipeprefix = (int32_t) '\t';
   scanner->in_recipe_context = false;
-  scanner->recipeprefix = true;
+  scanner->secondexpansion   = false;
 
   return scanner;
 }
