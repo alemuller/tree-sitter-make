@@ -127,6 +127,22 @@
     }
   },
   {
+    "type": "arguments",
+    "named": true,
+    "fields": {
+      "argument": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "body",
     "named": true,
     "fields": {},
@@ -378,16 +394,6 @@
     "type": "function_expansion",
     "named": true,
     "fields": {
-      "argument": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "text",
-            "named": true
-          }
-        ]
-      },
       "function": {
         "multiple": false,
         "required": true,
@@ -401,8 +407,12 @@
     },
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
         {
           "type": "split",
           "named": true

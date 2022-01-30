@@ -22,3 +22,28 @@ Comment, multiline
 
 (makefile
   (comment))
+
+=======================================
+Comment, recipe context
+=======================================
+.RECIPEPREFIX=>
+
+foo:
+#>foo
+>@echo foo
+
+---
+
+(makefile
+  (variable_assignment
+    name: (variable)
+    value: (text))
+  (ordinary_rule
+    (targets
+      (filename))
+    (recipe_context
+      (comment)
+      (recipeprefix)
+      (recipe
+        (shell_code)))))
+

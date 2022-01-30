@@ -11,5 +11,20 @@ x = $(file <, foo.bar)
     value: (text
       (function_expansion
         function: (name)
-        argument: (text)
-        argument: (text)))))
+        (arguments
+          argument: (text)
+          argument: (text))))))
+
+============================================
+Function, info
+============================================
+$(info foo#bar,baz)
+
+---
+
+(makefile
+  (function_expansion
+    function: (name)
+    (arguments
+      argument: (text)
+      argument: (text))))
