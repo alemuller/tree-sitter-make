@@ -143,6 +143,11 @@
     }
   },
   {
+    "type": "automatic_variable",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "body",
     "named": true,
     "fields": {},
@@ -1058,6 +1063,10 @@
       "required": false,
       "types": [
         {
+          "type": "automatic_variable",
+          "named": true
+        },
+        {
           "type": "variable",
           "named": true
         }
@@ -1112,6 +1121,14 @@
     "named": false
   },
   {
+    "type": "%D",
+    "named": false
+  },
+  {
+    "type": "%F",
+    "named": false
+  },
+  {
     "type": "&:",
     "named": false
   },
@@ -1132,11 +1149,31 @@
     "named": false
   },
   {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "*D",
+    "named": false
+  },
+  {
+    "type": "*F",
+    "named": false
+  },
+  {
     "type": "+",
     "named": false
   },
   {
     "type": "+=",
+    "named": false
+  },
+  {
+    "type": "+D",
+    "named": false
+  },
+  {
+    "type": "+F",
     "named": false
   },
   {
@@ -1172,7 +1209,23 @@
     "named": false
   },
   {
+    "type": "<",
+    "named": false
+  },
+  {
+    "type": "<D",
+    "named": false
+  },
+  {
+    "type": "<F",
+    "named": false
+  },
+  {
     "type": "=",
+    "named": false
+  },
+  {
+    "type": "?",
     "named": false
   },
   {
@@ -1180,7 +1233,35 @@
     "named": false
   },
   {
+    "type": "?D",
+    "named": false
+  },
+  {
+    "type": "?F",
+    "named": false
+  },
+  {
     "type": "@",
+    "named": false
+  },
+  {
+    "type": "@D",
+    "named": false
+  },
+  {
+    "type": "@F",
+    "named": false
+  },
+  {
+    "type": "^",
+    "named": false
+  },
+  {
+    "type": "^D",
+    "named": false
+  },
+  {
+    "type": "^F",
     "named": false
   },
   {

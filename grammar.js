@@ -1,12 +1,12 @@
 const immd = (x) => token.immediate(x);
 
-const ASSIGNMENT_OPERATOR = [ '=',':=','::=','+=','?=','!=' ];
-const RULE_SEPARATOR = [ ':','::','&:','&::' ];
+const ASSIGNMENT_OPERATOR = ['=',':=','::=','+=','?=','!='];
+const RULE_SEPARATOR      = [':','::','&:','&::'];
+const AUTOMATIC_VARIABLE  = ['@','%','<','?','^','+','*'];
 
-const BLANK   = [' ','\t'];
-const NEWLINE = ['\f','\n','\r','\v'];
-const LINE_SPLIT = ['\\\r\n', '\\\n'];
-const PATHSEP = [':'];
+const BLANK      = [' ','\t'];
+const NEWLINE    = ['\f','\n','\r','\v'];
+const LINE_SPLIT = ['\\\r\n','\\\n'];
 
 module.exports = grammar({
   name: 'make',
@@ -312,8 +312,6 @@ module.exports = grammar({
     // -----
     // Names
     // -----
-    // TODO only use this rule on assignents,
-    // others variables can use a simpler rule
     variable: $ => {
       // set of leading chars of ASSIGNMENT_OPERATOR
       const CONFLICT = ASSIGNMENT_OPERATOR.reduce((set, op) =>
@@ -427,14 +425,24 @@ module.exports = grammar({
 
     //
 
-    // TODO: recursive expansion
-    // NOTE: only restriction is not ":"
     _variable_reference: $ => choice(
+      $.automatic_variable,
       alias(immd(/[^${(]/), $.variable),
       seq(immd('{'), optional(alias($.varref_braces,$.variable)), immd('}')),
       seq(immd('('), optional(alias($.varref_parent,$.variable)), immd(')')),
+      seq(immd('{'), optional(alias($.automatic_variable_delim,$.automatic_variable)), immd('}')),
+      seq(immd('('), optional(alias($.automatic_variable_delim,$.automatic_variable)), immd(')')),
     ),
 
+    automatic_variable: $ => choice(
+      ...AUTOMATIC_VARIABLE.map(immd)
+    ),
+
+    automatic_variable_delim: $ => choice(
+      ...AUTOMATIC_VARIABLE.map(immd),
+      ...AUTOMATIC_VARIABLE.map(c => immd(c+'D')),
+      ...AUTOMATIC_VARIABLE.map(c => immd(c+'F'))
+    ),
 
     _substitution_reference: $ => choice(
       seq(
