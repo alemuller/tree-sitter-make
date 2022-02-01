@@ -399,10 +399,24 @@
     "type": "function_expansion",
     "named": true,
     "fields": {
+      "argument": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "text",
+            "named": true
+          }
+        ]
+      },
       "function": {
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "builtin",
+            "named": true
+          },
           {
             "type": "name",
             "named": true
@@ -412,7 +426,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "arguments",
@@ -1263,6 +1277,10 @@
   {
     "type": "^F",
     "named": false
+  },
+  {
+    "type": "builtin",
+    "named": true
   },
   {
     "type": "comment",

@@ -298,7 +298,7 @@ module.exports = grammar({
       seq(     field('arg1',          $._str),       field('arg2',          $._str)      ),
     ),
 
-    _arg: $ => alias($._stop_at_endparent, $.text),
+    _arg: $ => alias($._stop_at_comma_or_endparen, $.text),
 
     _str: $ => choice(
       seq("'",  optional(alias($._stop_at_squote, $.text)), immd("'")),
@@ -483,24 +483,45 @@ module.exports = grammar({
         alias($.arguments_paren, $.arguments),
         immd(')')
       ),
+      // Built-in functions
+      // ------------------
+      // Define some built-in here to improve the highlight
+      seq(
+        immd('{'),
+        field('function', alias(choice('info', 'warning', 'error', 'shell'), $.builtin)),
+        $._blank, // shall have at least one blank after name
+        field('argument', alias($.argument_text_braces, $.text)),
+        immd('}')
+      ),
+      seq(
+        immd('('),
+        field('function', alias(choice('info', 'warning', 'error', 'shell'), $.builtin)),
+        $._blank, // shall have at least one blank after name
+        field('argument', alias($.argument_text_paren, $.text)),
+        immd(')')
+      ),
     ),
 
     arguments_braces: $ => sepBy(',',
       field('argument', alias($.argument_braces, $.text))
     ),
 
-    argument_braces: $ => sepBy($.split, $._stop_at_endparent),
-
     arguments_paren: $ => sepBy(',',
       field('argument', alias($.argument_paren, $.text))
     ),
 
-    argument_paren : $ => sepBy($.split, $._stop_at_endparent),
+    argument_braces: $ => sepBy($.split, $._stop_at_comma_or_endbrace),
+    argument_paren : $ => sepBy($.split, $._stop_at_comma_or_endparen),
+
+    argument_text_braces: $ => sepBy($.split, $._stop_at_endbrace),
+    argument_text_paren : $ => sepBy($.split, $._stop_at_endparen),
 
     // Text
     // ====
-    _stop_at_endparent: $ => immdText($,textToken(')',',')),
-    _stop_at_endbraces: $ => immdText($,textToken('}',',')),
+    _stop_at_comma_or_endparen: $ => immdText($,textToken(')',',')),
+    _stop_at_comma_or_endbrace: $ => immdText($,textToken('}',',')),
+    _stop_at_endparen:  $ => immdText($,textToken(')')),
+    _stop_at_endbrace:  $ => immdText($,textToken('}')),
     _stop_at_comment:   $ => immdText($,textToken('#')),
     _stop_at_squote:    $ => immdText($,textToken('#',"'")),
     _stop_at_dquote:    $ => immdText($,textToken('#','"')),
