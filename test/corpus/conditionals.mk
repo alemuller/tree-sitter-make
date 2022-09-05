@@ -18,13 +18,16 @@ endif
 (makefile
   (conditional
     condition: (ifeq_directive
-			arg0: (string
-				string: (function_call
-					(arguments
-						argument: (text))))
-			arg1: (string
-				string: (variable_reference
-					(word)))))
+          arg0: (string
+                string: (function_call
+                    (arguments
+                      (argument
+                        (word)
+                        (word)
+                        (word)))))
+          arg1: (string
+            string: (variable_reference
+              (word)))))
   (conditional
     condition: (ifneq_directive
       arg0: (word)

@@ -452,17 +452,33 @@ module.exports = grammar({
             field('function', choice(
                 ...FUNCTIONS.map(f => token.immediate(f))
             )),
-            optional(WS),
+            WS,
             $.arguments,
             ')'
         ),
 
         arguments: $ => seq(
-            field('argument',$.text),
+            $.argument,
             repeat(seq(
                 ',',
-                field('argument',$.text),
-            ))
+                $.argument))
+        ),
+
+        argument: $ => seq(
+            choice(
+                WS,
+                $.word,
+                $._variable,
+                $._function,
+                $.string,
+            ),
+            repeat(choice(
+                WS,
+                $.word,
+                $._variable,
+                $._function,
+                $.string,
+            )),
         ),
 
         // 8.13
@@ -470,7 +486,7 @@ module.exports = grammar({
             choice('$','$$'),
             token.immediate('('),
             field('function', 'shell'),
-            optional(WS),
+            WS,
             $._shell_command,
             ')'
         ),
