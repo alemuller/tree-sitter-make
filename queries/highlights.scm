@@ -127,18 +127,6 @@
 ((word) @clean @string.regex
  (#match? @clean "[%\*\?]"))
 
-(function_call
-  function: "error"
-  (arguments (text) @text.danger))
-
-(function_call
-  function: "warning"
-  (arguments (text) @text.warning))
-
-(function_call
-  function: "info"
-  (arguments (text) @text.note))
-
 ;; Install Command Categories
 ;; Others special variables
 ;; Variables Used by Implicit Rules
