@@ -12,19 +12,12 @@
   },
   "homepage": "https://github.com/alemuller/tree-sitter-make#readme",
 
-  "keywords": [
-    "parsing",
-    "incremental",
-    "tree-sitter",
-    "make",
-    "makefile",
-    "GNUMAKEFILE"
-  ],
+  "keywords": ["parsing", "incremental", "tree-sitter", "make", "makefile", "GNUMAKEFILE"],
   "dependencies": {
     "nan": "^2.12.1"
   },
   "devDependencies": {
-    "tree-sitter-cli": "^0.19.4"
+    "tree-sitter-cli": "^0.20.0"
   },
   "scripts": {
     "test": "tree-sitter test"
@@ -32,15 +25,7 @@
   "tree-sitter": [
     {
       "scope": "source.mk",
-      "file-types": [
-        "makefile",
-        "Makefile",
-        "MAKEFILE",
-        "GNUmakefile",
-        "mk",
-        "mak",
-        "dsp"
-      ]
+      "file-types": ["makefile", "Makefile", "MAKEFILE", "GNUmakefile", "mk", "mak", "dsp"]
     }
   ]
 }
