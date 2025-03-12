@@ -107,6 +107,7 @@
  "file"
  "value"
  "shell"
+ "let"
 ] @keyword.function
 
 [

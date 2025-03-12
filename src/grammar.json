@@ -1,4 +1,5 @@
 {
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "make",
   "word": "word",
   "rules": {
@@ -2664,6 +2665,13 @@
                   "type": "STRING",
                   "value": "value"
                 }
+              },
+              {
+                "type": "IMMEDIATE_TOKEN",
+                "content": {
+                  "type": "STRING",
+                  "value": "let"
+                }
               }
             ]
           }
@@ -3823,6 +3831,6 @@
     "_name",
     "_string"
   ],
-  "supertypes": []
+  "supertypes": [],
+  "reserved": {}
 }
-
